@@ -3,10 +3,15 @@ import { presets } from 'react-motion';
 import Measure from 'react-measure';
 import MotionGrid from './index';
 import range from 'lodash/range';
+import flatten from 'lodash/flatten';
 import styled from 'styled-components';
 import Square from './Square';
 
 const Wrapper = styled.div`
+`;
+
+const AppShellItem = styled(Square)`
+  background: #EEE;
 `;
 
 const Item = styled(Square)`
@@ -15,6 +20,23 @@ const Item = styled(Square)`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const LoadMoreButtonContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+`;
+
+const LoadingMoreItems = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+`;
+
+const Button = styled.button`
 `;
 
 export default class Test extends React.Component {
@@ -26,7 +48,7 @@ export default class Test extends React.Component {
 
     setTimeout(() => {
       this.setState({
-        items: this.createItems(12),
+        items: this.createItems(9),
       });
     }, 3000);
   }
@@ -46,7 +68,7 @@ export default class Test extends React.Component {
       this.setState({
         items: [
           ...items,
-          ...this.createItems(12, items.length),
+          ...this.createItems(9, items.length),
         ],
         isLoading: false,
       });
@@ -58,20 +80,34 @@ export default class Test extends React.Component {
       items,
       isLoading,
     } = this.state;
+
     return (
       <Wrapper>
         <MotionGrid
-          columns={[ 6, 6, 4, 4, 4, 12 ]}
+          columns={flatten(range(5).map(i => ([
+            4, 4, 4,
+            3, 3, 3, 3,
+            6, 6,
+          ])))}
           innerPadding={{
-            vertical: 10,
-            horizontal: 24,
+            vertical: 12,
+            horizontal: 12,
           }}
           enableAppShell
           enablePaging
+          appShellItem={<AppShellItem />}
           pagingOptions={{
-            isFetchedAll: true,
+            isFetchedAll: items.length >= 30,
             isLoading: isLoading,
             loadMoreItems: () => this.loadMoreItems(items),
+            renderLoadMoreButton: ({ onClick, disabled }) => (
+              <LoadMoreButtonContainer>
+                <Button onClick={onClick} disabled={disabled}>Click to Load more</Button>
+              </LoadMoreButtonContainer>
+            ),
+            renderLoadingMoreItems: () => (
+              <LoadingMoreItems>Loading more items...</LoadingMoreItems>
+            ),
           }}
         >
           {items}

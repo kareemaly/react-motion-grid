@@ -6,11 +6,11 @@ const StyledBox = styled.div`
   height: ${(props) => props.height}px;
 `;
 
-export default ({ heightRatio = 1, ...props }) => (
+export default ({ ...props }) => (
   <Measure whitelist={['width']} includeMargin={false}>
     {({ width }) => (
       <StyledBox
-        height={width * heightRatio}
+        height={width}
         {...props}
       />
     )}

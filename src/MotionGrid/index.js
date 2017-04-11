@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import Waypoint from 'react-waypoint';
 import { StaggeredMotion, spring, presets } from 'react-motion';
 import styled from 'styled-components';
-import Square from './Square';
 import keys from 'lodash/keys';
 import bottomFadeIn from './BottomFadeInAnimation';
 import fadeIn from './FadeInAnimation';
@@ -37,31 +36,10 @@ const Column = styled.div`
   flex-shrink: 0;
 `;
 
-const Button = styled.button`
-`;
-
 const PatchWrapper = styled.div`
   margin-top: -${(props) => getVerticalPadding(props.innerPadding)/2}px;
   margin-bottom: -${(props) => getVerticalPadding(props.innerPadding)/2}px;
   width: 100%;
-`;
-
-const PatchAppShellItem = styled(Square)`
-  background: #EEE;
-`;
-
-const LoadingMoreItems = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-`;
-
-const LoadMoreButtonContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
 `;
 
 const GRID_COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -95,6 +73,8 @@ export default class MotionGrid extends React.Component {
     }),
     shellItemsRows: PropTypes.number,
     animationType: PropTypes.oneOf(keys(animations)),
+    enableAppShell: PropTypes.bool,
+    appShellItem: PropTypes.element,
   };
 
   static defaultProps = {
@@ -102,6 +82,7 @@ export default class MotionGrid extends React.Component {
     innerPadding: 0,
     startAnimate: true,
     enablePaging: false,
+    enableAppShell: false,
     pagingOptions: {},
     springOptions: presets.noWobble,
     shellItemsRows: 3,
@@ -194,15 +175,17 @@ export default class MotionGrid extends React.Component {
               const top = ((verticalPadding)/2);
               const bottom = ((verticalPadding)/2);
 
-              return (
-                <Column
-                  padding={{ top, bottom, left, right, }}
-                  width={column.width}
-                  key={j}
-                >
-                  {animation ? animation.getWrapper(column.element, columnStyle) : column.element}
-                </Column>
-              )
+              if(!animation || animation.isVisible(columnStyle)) {
+                return (
+                  <Column
+                    padding={{ top, bottom, left, right, }}
+                    width={column.width}
+                    key={j}
+                  >
+                    {animation ? animation.getWrapper(column.element, columnStyle) : column.element}
+                  </Column>
+                );
+              }
             })}
           </Row>
         </div>
@@ -259,11 +242,25 @@ export default class MotionGrid extends React.Component {
       this.renderPatch({ patch, ...args }, index));
   }
 
-  renderAppShell({ columns, shellItemsRows, innerPadding }) {
-    const noOfShellItems = columns.length || Math.floor((12 / columns) * shellItemsRows);
-    const patch = new Array(noOfShellItems).fill(
-      <PatchAppShellItem />
-    );
+  getNumberOfShellItems({ columns, shellItemsRows }) {
+    if(!isNaN(columns)) {
+      return Math.floor((12 / columns) * shellItemsRows);
+    }
+
+    //
+    let addition = 0;
+    for (var i = 0; i < columns.length; i++) {
+      if(addition >= (shellItemsRows * 12)) {
+        return i ;
+      } else {
+        addition = columns[i] + addition;
+      }
+    }
+  }
+
+  renderAppShell({ columns, appShellItem, shellItemsRows, innerPadding }) {
+    const noOfShellItems = this.getNumberOfShellItems({ columns, shellItemsRows });
+    const patch = new Array(noOfShellItems).fill(appShellItem);
     const rows = this.getRows(patch, columns);
     return (
       <PatchWrapper innerPadding={innerPadding}>
@@ -286,7 +283,7 @@ export default class MotionGrid extends React.Component {
     }
 
     if(pagingOptions.isLoading) {
-      return <LoadingMoreItems>Loading more items...</LoadingMoreItems>;
+      return pagingOptions.renderLoadingMoreItems();
     }
 
     return (
@@ -304,19 +301,15 @@ export default class MotionGrid extends React.Component {
     if (! enablePaging || pagingOptions.isFetchedAll || !animationOnRest) return;
 
     if (!isLoadBtnClicked && pagingOptions.loadMoreItems) {
-      return (
-        <LoadMoreButtonContainer>
-          <Button
-            onClick={() => {
-              pagingOptions.loadMoreItems();
-              this.setState({ isLoadBtnClicked: true });
-            }}
-            disabled={pagingOptions.isLoading}
-          >
-            Load more
-          </Button>
-        </LoadMoreButtonContainer>
-      );
+      const onClick = () => {
+        pagingOptions.loadMoreItems();
+        this.setState({ isLoadBtnClicked: true });
+      };
+
+      return pagingOptions.renderLoadMoreButton({
+        disabled: pagingOptions.isLoading,
+        onClick,
+      });
     } else {
       return this.renderWaypoint({ pagingOptions });
     }
@@ -332,6 +325,7 @@ export default class MotionGrid extends React.Component {
       pagingOptions,
       enableAppShell,
       shellItemsRows,
+      appShellItem,
       animationType,
       children,
       ...props,
@@ -344,7 +338,7 @@ export default class MotionGrid extends React.Component {
     } = this.state;
 
     if(enableAppShell && children.length === 0) {
-      return this.renderAppShell({ columns, innerPadding, shellItemsRows });
+      return this.renderAppShell({ columns, appShellItem, innerPadding, shellItemsRows });
     }
 
     const animation = new animations[animationType];

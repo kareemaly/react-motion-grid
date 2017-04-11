@@ -9,6 +9,10 @@ const ItemWrapper = styled.div`
 
 export default class FadeInAnimation {
 
+  isVisible({ opacity }) {
+    return opacity > 0.1;
+  }
+
   getWrapper(children, { opacity, translateY }) {
     return (
       <ItemWrapper
