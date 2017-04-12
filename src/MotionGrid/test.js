@@ -50,7 +50,7 @@ export default class Test extends React.Component {
       this.setState({
         items: this.createItems(9),
       });
-    }, 3000);
+    }, 500);
   }
 
   createItems(no, startWith = 1) {
@@ -109,6 +109,7 @@ export default class Test extends React.Component {
               <LoadingMoreItems>Loading more items...</LoadingMoreItems>
             ),
           }}
+          minimumAppShellTime={2000}
         >
           {items}
         </MotionGrid>

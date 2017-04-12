@@ -75,6 +75,9 @@ export default class MotionGrid extends React.Component {
     animationType: PropTypes.oneOf(keys(animations)),
     enableAppShell: PropTypes.bool,
     appShellItem: PropTypes.element,
+    // Minimum millis to wait before hiding app shell even if the data was loaded...
+    // This is used to pervent flickers when the data is loaded in a very short time
+    minimumAppShellTime: PropTypes.number,
   };
 
   static defaultProps = {
@@ -87,6 +90,7 @@ export default class MotionGrid extends React.Component {
     springOptions: presets.noWobble,
     shellItemsRows: 3,
     animationType: 'fadeIn',
+    minimumAppShellTime: 0,
   };
 
   componentWillUnmount() {
@@ -94,12 +98,25 @@ export default class MotionGrid extends React.Component {
   }
 
   componentWillMount() {
+    const hasMinimumAppShellTime = this.props.enableAppShell && this.props.minimumAppShellTime > 0;
+
     this.setState({
       animationOnRest: false,
       isLoadBtnClicked: false,
       // Add first patch
       patches: this.props.children.length > 0 ? [this.props.children] : [],
+      // Force show app shell if minimum app shell time was greater than zero
+      forceShowAppShell: hasMinimumAppShellTime,
     });
+
+    // Add timer to unset forceShowAppShell state variable after the minimum app shell time
+    if(hasMinimumAppShellTime) {
+      setTimeout(() => {
+        this.setState({
+          forceShowAppShell: false,
+        });
+      }, this.props.minimumAppShellTime);
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -327,6 +344,7 @@ export default class MotionGrid extends React.Component {
       shellItemsRows,
       appShellItem,
       animationType,
+      minimumAppShellTime,
       children,
       ...props,
     } = this.props;
@@ -335,9 +353,12 @@ export default class MotionGrid extends React.Component {
       patches,
       isLoadBtnClicked,
       animationOnRest,
+      forceShowAppShell,
     } = this.state;
 
-    if(enableAppShell && children.length === 0) {
+    const isDataLoaded = children.length > 0;
+
+    if(enableAppShell && (!isDataLoaded || forceShowAppShell)) {
       return this.renderAppShell({ columns, appShellItem, innerPadding, shellItemsRows });
     }
 
