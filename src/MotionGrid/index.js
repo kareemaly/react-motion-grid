@@ -94,7 +94,7 @@ export default class MotionGrid extends React.Component {
   };
 
   componentWillUnmount() {
-    this.unmounted = true;
+    clearTimeout(this.timer);
   }
 
   componentWillMount() {
@@ -111,7 +111,7 @@ export default class MotionGrid extends React.Component {
 
     // Add timer to unset forceShowAppShell state variable after the minimum app shell time
     if(hasMinimumAppShellTime) {
-      setTimeout(() => {
+      this.timer = setTimeout(() => {
         this.setState({
           forceShowAppShell: false,
         });
