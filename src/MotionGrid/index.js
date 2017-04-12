@@ -192,7 +192,7 @@ export default class MotionGrid extends React.Component {
               const top = ((verticalPadding)/2);
               const bottom = ((verticalPadding)/2);
 
-              if(!animation || animation.isVisible(columnStyle)) {
+              if(column.element && (!animation || animation.isVisible(columnStyle))) {
                 return (
                   <Column
                     padding={{ top, bottom, left, right, }}
@@ -203,7 +203,7 @@ export default class MotionGrid extends React.Component {
                   </Column>
                 );
               }
-            })}
+            }).filter(ele => !!ele)}
           </Row>
         </div>
       )
