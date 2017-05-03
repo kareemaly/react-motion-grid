@@ -42,15 +42,28 @@ const PatchWrapper = styled.div`
   width: 100%;
 `;
 
-const GRID_COLUMNS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-
 export default class MotionGrid extends React.Component {
   static propTypes = {
-    disableAnimation: PropTypes.bool,
+    /**
+     * Array of react elements you want to render in a grid.
+     */
+    children: PropTypes.arrayOf(PropTypes.element).isRequired,
+    /**
+     * This controls number of columns to render for each row.
+     * This **MUST** be between 1 and 12
+     * e.g. `12 / 3` -> This will render 3 columns in each row.
+     * e.g. `[ 6, 6, 4, 4, 4 ]` -> This will render 5 items in two rows, first 
+     * row will render two items (6, 6), second row will render three items
+     * (4, 4, 4).
+     */
     columns: PropTypes.oneOfType([
-      PropTypes.oneOf(GRID_COLUMNS),
-      PropTypes.arrayOf(PropTypes.oneOf(GRID_COLUMNS)),
+      PropTypes.number,
+      PropTypes.arrayOf(PropTypes.number),
     ]),
+    /**
+     * Inner paddings between items. You can have different vertical and horizontal
+     * paddings.
+     */
     innerPadding: PropTypes.oneOfType([
       PropTypes.number,
       PropTypes.string,
@@ -59,25 +72,59 @@ export default class MotionGrid extends React.Component {
         horizontal: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
       }),
     ]),
+    /**
+     * If you want to control when the animation should start then set this to
+     * false.
+     */
     startAnimate: PropTypes.bool,
+    /**
+     * Animation type to use.
+     */
+    animationType: PropTypes.oneOf([
+      'bottomFadeIn',
+      'fadeIn',
+    ]),
+    /**
+     * This will disable the animation.
+     */
+    disableAnimation: PropTypes.bool,
+    /**
+     * Enable paging feature.
+     */
     enablePaging: PropTypes.bool,
+    /**
+     * This is only considered when enablePaging is true.
+     */
     pagingOptions: PropTypes.shape({
       isFetchedAll: PropTypes.bool,
       isLoading: PropTypes.bool,
       loadMoreItems: PropTypes.func,
     }),
-    children: PropTypes.arrayOf(PropTypes.element).isRequired,
+    /**
+     * React motion configurations.
+     * [More about this here](https://github.com/chenglou/react-motion#--spring-val-number-config-springhelperconfig--opaqueconfig)
+     */
     springOptions: PropTypes.shape({
       stiffness: PropTypes.number,
       damping: PropTypes.number,
     }),
-    shellItemsRows: PropTypes.number,
-    animationType: PropTypes.oneOf(keys(animations)),
-    enableAppShell: PropTypes.bool,
-    appShellItem: PropTypes.element,
-    // Minimum millis to wait before hiding app shell even if the data was loaded...
-    // This is used to pervent flickers when the data is loaded in a very short time
-    minimumAppShellTime: PropTypes.number,
+    /**
+     * Whether or not to enable placeholders.
+     */
+    enablePlaceholders: PropTypes.bool,
+    /**
+     * Number of placeholder rows to show before data is loaded
+     */
+    placeholderRows: PropTypes.number,
+    /**
+     * React element to render for the placeholder
+     */
+    placeholderItem: PropTypes.element,
+    /**
+     * Minimum millis to wait before hiding placeholder even if the data was loaded.
+     * This is used to pervent flickers when the data is loaded in a very short time
+     */
+    minimumPlaceholdersTime: PropTypes.number,
   };
 
   static defaultProps = {
@@ -85,12 +132,12 @@ export default class MotionGrid extends React.Component {
     innerPadding: 0,
     startAnimate: true,
     enablePaging: false,
-    enableAppShell: false,
+    enablePlaceholders: false,
     pagingOptions: {},
     springOptions: presets.noWobble,
-    shellItemsRows: 3,
+    placeholderRows: 3,
     animationType: 'fadeIn',
-    minimumAppShellTime: 0,
+    minimumPlaceholdersTime: 0,
   };
 
   componentWillUnmount() {
@@ -98,24 +145,24 @@ export default class MotionGrid extends React.Component {
   }
 
   componentWillMount() {
-    const hasMinimumAppShellTime = this.props.enableAppShell && this.props.minimumAppShellTime > 0;
+    const hasMinimumPlaceholdersTime = this.props.enablePlaceholders && this.props.minimumPlaceholdersTime > 0;
 
     this.setState({
       animationOnRest: false,
       isLoadBtnClicked: false,
       // Add first patch
       patches: this.props.children.length > 0 ? [this.props.children] : [],
-      // Force show app shell if minimum app shell time was greater than zero
-      forceShowAppShell: hasMinimumAppShellTime,
+      // Force show placeholder if minimum placeholder time was greater than zero
+      forceShowPlaceholders: hasMinimumPlaceholdersTime,
     });
 
-    // Add timer to unset forceShowAppShell state variable after the minimum app shell time
-    if(hasMinimumAppShellTime) {
+    // Add timer to unset forceShowPlaceholders state variable after the minimum placeholder time
+    if(hasMinimumPlaceholdersTime) {
       this.timer = setTimeout(() => {
         this.setState({
-          forceShowAppShell: false,
+          forceShowPlaceholders: false,
         });
-      }, this.props.minimumAppShellTime);
+      }, this.props.minimumPlaceholdersTime);
     }
   }
 
@@ -162,11 +209,11 @@ export default class MotionGrid extends React.Component {
     return opacity > 0.1;
   }
 
-  renderRows({ rows, animation, innerPadding, styles, isAppShell = false }) {
+  renderRows({ rows, animation, innerPadding, styles, isPlaceholders = false }) {
     let k = 0;
 
     // @todo remove this when react-motion implements onRest for StaggeredMotion...
-    if(!isAppShell && ! styles.some(style => style.opacity < 1) && !this.animationOnRest) {
+    if(!isPlaceholders && ! styles.some(style => style.opacity < 1) && !this.animationOnRest) {
       this.animationOnRest = true;
       setTimeout(() => this.setState({ animationOnRest: true }), 100);
     }
@@ -259,15 +306,15 @@ export default class MotionGrid extends React.Component {
       this.renderPatch({ patch, ...args }, index));
   }
 
-  getNumberOfShellItems({ columns, shellItemsRows }) {
+  getNumberOfShellItems({ columns, placeholderRows }) {
     if(!isNaN(columns)) {
-      return Math.floor((12 / columns) * shellItemsRows);
+      return Math.floor((12 / columns) * placeholderRows);
     }
 
     //
     let addition = 0;
     for (var i = 0; i < columns.length; i++) {
-      if(addition >= (shellItemsRows * 12)) {
+      if(addition >= (placeholderRows * 12)) {
         return i ;
       } else {
         addition = columns[i] + addition;
@@ -275,9 +322,9 @@ export default class MotionGrid extends React.Component {
     }
   }
 
-  renderAppShell({ columns, appShellItem, shellItemsRows, innerPadding }) {
-    const noOfShellItems = this.getNumberOfShellItems({ columns, shellItemsRows });
-    const patch = new Array(noOfShellItems).fill(appShellItem);
+  renderPlaceholders({ columns, placeholderItem, placeholderRows, innerPadding }) {
+    const noOfShellItems = this.getNumberOfShellItems({ columns, placeholderRows });
+    const patch = new Array(noOfShellItems).fill(placeholderItem);
     const rows = this.getRows(patch, columns);
     return (
       <PatchWrapper innerPadding={innerPadding}>
@@ -288,7 +335,7 @@ export default class MotionGrid extends React.Component {
             opacity: 1,
             translateX: 0,
           }),
-          isAppShell: true,
+          isPlaceholders: true,
         })}
       </PatchWrapper>
     );
@@ -340,11 +387,11 @@ export default class MotionGrid extends React.Component {
       springOptions,
       enablePaging,
       pagingOptions,
-      enableAppShell,
-      shellItemsRows,
-      appShellItem,
+      enablePlaceholders,
+      placeholderRows,
+      placeholderItem,
       animationType,
-      minimumAppShellTime,
+      minimumPlaceholdersTime,
       children,
       ...props,
     } = this.props;
@@ -353,13 +400,13 @@ export default class MotionGrid extends React.Component {
       patches,
       isLoadBtnClicked,
       animationOnRest,
-      forceShowAppShell,
+      forceShowPlaceholders,
     } = this.state;
 
     const isDataLoaded = children.length > 0;
 
-    if(enableAppShell && (!isDataLoaded || forceShowAppShell)) {
-      return this.renderAppShell({ columns, appShellItem, innerPadding, shellItemsRows });
+    if(enablePlaceholders && (!isDataLoaded || forceShowPlaceholders)) {
+      return this.renderPlaceholders({ columns, placeholderItem, innerPadding, placeholderRows });
     }
 
     const animation = new animations[animationType];

@@ -10,7 +10,7 @@ import Square from './Square';
 const Wrapper = styled.div`
 `;
 
-const AppShellItem = styled(Square)`
+const PlaceholderItem = styled(Square)`
   background: #EEE;
 `;
 
@@ -93,9 +93,8 @@ export default class Test extends React.Component {
             vertical: 12,
             horizontal: 12,
           }}
-          enableAppShell
+
           enablePaging
-          appShellItem={<AppShellItem />}
           pagingOptions={{
             isFetchedAll: items.length >= 30,
             isLoading: isLoading,
@@ -109,7 +108,11 @@ export default class Test extends React.Component {
               <LoadingMoreItems>Loading more items...</LoadingMoreItems>
             ),
           }}
-          minimumAppShellTime={2000}
+
+          enablePlaceholders
+          placeholderRows={4}
+          placeholderItem={<PlaceholderItem />}
+          minimumPlaceholdersTime={2000}
         >
           {items}
         </MotionGrid>
