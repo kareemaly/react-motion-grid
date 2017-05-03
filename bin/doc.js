@@ -29,7 +29,7 @@ const propTypeToString = (type) => {
   let propertyType = type.name;
 
   if(type.name === 'arrayOf') {
-    propertyType += ` (${type.value.name})`;
+    propertyType += ` (${propTypeToString(type.value)})`;
   }
 
   if(type.name === 'shape') {
