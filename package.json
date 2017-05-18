@@ -20,8 +20,7 @@
     "prebuild": "npm run doc",
     "build": "webpack --config webpack.prod.config --progress --colors",
     "start": "node server.js",
-    "lint": "eslint src",
-    "preversion": "npm run build && git add --all && git commit -m 'Building package'"
+    "lint": "eslint src"
   },
   "keywords": [
     "react-motion-grid",
