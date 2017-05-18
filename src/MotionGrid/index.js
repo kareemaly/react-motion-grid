@@ -37,8 +37,12 @@ const Column = styled.div`
 `;
 
 const PatchWrapper = styled.div`
-  margin-top: -${(props) => getVerticalPadding(props.innerPadding)/2}px;
-  margin-bottom: -${(props) => getVerticalPadding(props.innerPadding)/2}px;
+  ${(props) => props.isFirst && `
+    margin-top: -${getVerticalPadding(props.innerPadding)/2}px;
+  `}
+  ${(props) => props.isLast && `
+    margin-bottom: -${getVerticalPadding(props.innerPadding)/2}px;
+  `}
   width: 100%;
 `;
 
@@ -257,7 +261,16 @@ export default class MotionGrid extends React.Component {
     });
   }
 
-  renderPatch({ patch, animation, columns, startAnimate, springOptions, innerPadding }, index) {
+  renderPatch({
+    isFirst,
+    isLast,
+    patch,
+    animation,
+    columns,
+    startAnimate,
+    springOptions,
+    innerPadding,
+  }, index) {
     const rows = this.getRows(patch, columns);
 
     if (rows.length == 0) {
@@ -303,7 +316,12 @@ export default class MotionGrid extends React.Component {
 
   renderPatches({ patches, ...args }) {
     return patches.map((patch, index) =>
-      this.renderPatch({ patch, ...args }, index));
+      this.renderPatch({
+        isFirst: index === 0,
+        isLast: index === patches.length - 1,
+        patch,
+        ...args,
+      }, index));
   }
 
   getNumberOfShellItems({ columns, placeholderRows }) {
