@@ -171,6 +171,17 @@ export default class MotionGrid extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    for (var i=0; (i < nextProps.children.length) && (i < this.props.children.length); i++) {
+      if (nextProps.children[i].key !== this.props.children[i].key) {
+        this.setState({
+          patches: [
+            nextProps.children,
+          ],
+          isLoadBtnClicked: false,
+        });
+        return;
+      }
+    }
     if(nextProps.children.length > this.props.children.length) {
       this.setState({
         patches: [
